@@ -3,10 +3,36 @@ import { Task, TaskFormData } from '../types';
 import TaskForm from './TaskForm';
 import TaskItem from './TaskItem';
 
+const isToday = (dueDate?: string) => {
+  if (!dueDate) return false;
+  const today = new Date().toISOString().slice(0, 10);
+  return dueDate === today;
+};
+
+const isThisWeek = (dueDate?: string) => {
+  if (!dueDate) return false;
+
+  const today = new Date();
+  const dayOfWeek = today.getDay() || 7; // Make Sunday (0) be 7
+
+  const monday = new Date(today);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(today.getDate() - (dayOfWeek - 1));
+
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+
+  const due = new Date(dueDate);
+  return due >= monday && due <= sunday;
+};
+
 const PlanningAgent: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'in-progress' | 'completed'>('all');
+  const [filter, setFilter] = useState<
+    'all' | 'pending' | 'in-progress' | 'completed' | 'today' | 'this-week'
+  >('all');
 
   // Load tasks from localStorage on component mount
   useEffect(() => {
@@ -44,6 +70,15 @@ const PlanningAgent: React.FC = () => {
 
   const filteredTasks = tasks.filter(task => {
     if (filter === 'all') return true;
+
+    if (filter === 'today') {
+      return !!task.dueDate && task.status !== 'completed' && isToday(task.dueDate);
+    }
+
+    if (filter === 'this-week') {
+      return !!task.dueDate && task.status !== 'completed' && isThisWeek(task.dueDate);
+    }
+
     return task.status === filter;
   });
 
@@ -57,6 +92,25 @@ const PlanningAgent: React.FC = () => {
   };
 
   const counts = getTaskCounts();
+
+  const getEmptyStateMessage = () => {
+    switch (filter) {
+      case 'all':
+        return 'No tasks yet. Create your first task to get started!';
+      case 'pending':
+        return 'No pending tasks.';
+      case 'in-progress':
+        return 'No in-progress tasks.';
+      case 'completed':
+        return 'No completed tasks.';
+      case 'today':
+        return 'No tasks due today.';
+      case 'this-week':
+        return 'No tasks due this week.';
+      default:
+        return 'No tasks to show.';
+    }
+  };
 
   return (
     <div className="planning-agent">
@@ -104,6 +158,8 @@ const PlanningAgent: React.FC = () => {
                 <option value="pending">Pending</option>
                 <option value="in-progress">In Progress</option>
                 <option value="completed">Completed</option>
+                <option value="today">Due Today</option>
+                <option value="this-week">Due This Week</option>
               </select>
             </div>
           </div>
@@ -111,12 +167,7 @@ const PlanningAgent: React.FC = () => {
           <div className="tasks-section">
             {filteredTasks.length === 0 ? (
               <div className="empty-state">
-                <p>
-                  {filter === 'all' 
-                    ? 'No tasks yet. Create your first task to get started!'
-                    : `No ${filter.replace('-', ' ')} tasks.`
-                  }
-                </p>
+                <p>{getEmptyStateMessage()}</p>
               </div>
             ) : (
               <div className="tasks-list">
