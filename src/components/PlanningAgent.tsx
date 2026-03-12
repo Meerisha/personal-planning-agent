@@ -3,6 +3,10 @@ import { Task, TaskFormData } from '../types';
 import TaskForm from './TaskForm';
 import TaskItem from './TaskItem';
 
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString();
+};
+
 const isToday = (dueDate?: string) => {
   if (!dueDate) return false;
   const today = new Date().toISOString().slice(0, 10);
@@ -112,6 +116,46 @@ const PlanningAgent: React.FC = () => {
     }
   };
 
+  const getFocusTasks = () => {
+    const activeTasks = tasks.filter(t => t.status !== 'completed');
+    if (activeTasks.length === 0) return [];
+
+    const priorityOrder: Record<Task['priority'], number> = {
+      high: 3,
+      medium: 2,
+      low: 1
+    };
+
+    return [...activeTasks]
+      .sort((a, b) => {
+        const aHasDue = !!a.dueDate;
+        const bHasDue = !!b.dueDate;
+
+        if (aHasDue !== bHasDue) {
+          return aHasDue ? -1 : 1;
+        }
+
+        if (a.dueDate && b.dueDate) {
+          const aTime = new Date(a.dueDate).getTime();
+          const bTime = new Date(b.dueDate).getTime();
+          if (aTime !== bTime) {
+            return aTime - bTime;
+          }
+        }
+
+        const aPriority = priorityOrder[a.priority];
+        const bPriority = priorityOrder[b.priority];
+        if (aPriority !== bPriority) {
+          return bPriority - aPriority;
+        }
+
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      })
+      .slice(0, 3);
+  };
+
+  const focusTasks = getFocusTasks();
+
   return (
     <div className="planning-agent">
       <header className="agent-header">
@@ -138,6 +182,31 @@ const PlanningAgent: React.FC = () => {
         )}
 
         <div className="dashboard-section">
+          <div className="focus-section">
+            <h2>Top 3 things to do now</h2>
+            {focusTasks.length === 0 ? (
+              <p className="focus-empty">No immediate tasks. You&apos;re all caught up.</p>
+            ) : (
+              <ul className="focus-list">
+                {focusTasks.map(task => (
+                  <li key={task.id} className="focus-item">
+                    <div className="focus-main">
+                      <span className="focus-title">{task.title}</span>
+                      {task.dueDate && (
+                        <span className="focus-due">
+                          Due {formatDate(task.dueDate)}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`focus-priority focus-${task.priority}`}>
+                      {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)} priority
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
           <div className="stats-bar">
             <div className="stats">
               <span className="stat-item">Total: {counts.total}</span>
