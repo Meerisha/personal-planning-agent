@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { TaskFormData } from '../types';
+import { TaskFormData, Goal } from '../types';
 
 interface TaskFormProps {
   onSubmit: (taskData: TaskFormData) => void;
   onCancel?: () => void;
+  goals?: Goal[];
 }
 
-const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
+const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel, goals = [] }) => {
   const [formData, setFormData] = useState<TaskFormData>({
     title: '',
     description: '',
     priority: 'medium',
-    dueDate: ''
+    dueDate: '',
+    goalId: undefined
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -19,13 +21,15 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
     if (formData.title.trim()) {
       onSubmit({
         ...formData,
-        dueDate: formData.dueDate || undefined
+        dueDate: formData.dueDate || undefined,
+        goalId: formData.goalId || undefined
       });
       setFormData({
         title: '',
         description: '',
         priority: 'medium',
-        dueDate: ''
+        dueDate: '',
+        goalId: undefined
       });
     }
   };
@@ -79,6 +83,24 @@ const TaskForm: React.FC<TaskFormProps> = ({ onSubmit, onCancel }) => {
           />
         </div>
       </div>
+
+      {goals.length > 0 && (
+        <div className="form-group">
+          <label htmlFor="goalId">Goal (optional)</label>
+          <select
+            id="goalId"
+            value={formData.goalId ?? ''}
+            onChange={(e) => setFormData({ ...formData, goalId: e.target.value || undefined })}
+          >
+            <option value="">None</option>
+            {goals.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="form-actions">
         <button type="submit" className="btn btn-primary">

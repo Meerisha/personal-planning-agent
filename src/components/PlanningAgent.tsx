@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Task, TaskFormData } from '../types';
+import { Task, TaskFormData, Goal, GoalFormData } from '../types';
 import TaskForm from './TaskForm';
 import TaskItem from './TaskItem';
+import GoalList from './GoalList';
 
 const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString();
@@ -33,23 +34,26 @@ const isThisWeek = (dueDate?: string) => {
 
 const PlanningAgent: React.FC = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [filter, setFilter] = useState<
     'all' | 'pending' | 'in-progress' | 'completed' | 'today' | 'this-week'
   >('all');
 
-  // Load tasks from localStorage on component mount
   useEffect(() => {
     const savedTasks = localStorage.getItem('planningAgentTasks');
-    if (savedTasks) {
-      setTasks(JSON.parse(savedTasks));
-    }
+    if (savedTasks) setTasks(JSON.parse(savedTasks));
+    const savedGoals = localStorage.getItem('planningAgentGoals');
+    if (savedGoals) setGoals(JSON.parse(savedGoals));
   }, []);
 
-  // Save tasks to localStorage whenever tasks change
   useEffect(() => {
     localStorage.setItem('planningAgentTasks', JSON.stringify(tasks));
   }, [tasks]);
+
+  useEffect(() => {
+    localStorage.setItem('planningAgentGoals', JSON.stringify(goals));
+  }, [goals]);
 
   const addTask = (taskData: TaskFormData) => {
     const newTask: Task = {
@@ -60,6 +64,25 @@ const PlanningAgent: React.FC = () => {
     };
     setTasks(prev => [...prev, newTask]);
     setShowForm(false);
+  };
+
+  const addGoal = (data: GoalFormData) => {
+    const newGoal: Goal = {
+      id: 'goal-' + Date.now(),
+      name: data.name,
+      deadline: data.deadline,
+      createdAt: new Date().toISOString()
+    };
+    setGoals(prev => [...prev, newGoal]);
+  };
+
+  const updateGoal = (goalId: string, data: GoalFormData) => {
+    setGoals(prev => prev.map(g => g.id === goalId ? { ...g, name: data.name, deadline: data.deadline } : g));
+  };
+
+  const deleteGoal = (goalId: string) => {
+    setGoals(prev => prev.filter(g => g.id !== goalId));
+    setTasks(prev => prev.map(t => t.goalId === goalId ? { ...t, goalId: undefined } : t));
   };
 
   const updateTaskStatus = (taskId: string, status: Task['status']) => {
@@ -177,6 +200,7 @@ const PlanningAgent: React.FC = () => {
             <TaskForm 
               onSubmit={addTask}
               onCancel={() => setShowForm(false)}
+              goals={goals}
             />
           </div>
         )}
@@ -269,6 +293,16 @@ const PlanningAgent: React.FC = () => {
               </div>
             )}
           </div>
+
+          <GoalList
+            goals={goals}
+            tasks={tasks}
+            onAddGoal={addGoal}
+            onUpdateGoal={updateGoal}
+            onDeleteGoal={deleteGoal}
+            onTaskStatusChange={updateTaskStatus}
+            onDeleteTask={deleteTask}
+          />
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ export interface Task {
   status: 'pending' | 'in-progress' | 'completed';
   dueDate?: string;
   createdAt: string;
+  goalId?: string;
 }
 
 export interface TaskFormData {
@@ -13,4 +14,17 @@ export interface TaskFormData {
   description: string;
   priority: 'low' | 'medium' | 'high';
   dueDate?: string;
+  goalId?: string;
+}
+
+export interface Goal {
+  id: string;
+  name: string;
+  deadline?: string;
+  createdAt: string;
+}
+
+export interface GoalFormData {
+  name: string;
+  deadline?: string;
 } 
